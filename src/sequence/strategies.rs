@@ -1,13 +1,13 @@
 use std::fs;
 
-use crate::GenericResult;
+use crate::Result;
 
 use super::{LoadStrategy, Sequence};
 
 pub struct BasicLoadStrategy;
 
 impl LoadStrategy for BasicLoadStrategy {
-    fn load(&self, path: &str) -> GenericResult<Vec<Sequence>> {
+    fn load(&self, path: &str) -> Result<Vec<Sequence>> {
         let fasta = fs::read_to_string(path)?;
         let mut seqs = vec![];
         let mut curr_seq = None;

@@ -43,19 +43,19 @@ pub mod extractor {
 pub mod validator {
     use crate::{
         cli::{ArgKind, CliArg, ValidatorStrategy},
-        GenericResult, StringError,
+        Error, Result,
     };
 
     pub struct BasicValidatorStrategy;
 
     impl ValidatorStrategy for BasicValidatorStrategy {
-        fn validate(&self, args: &Vec<CliArg>) -> GenericResult {
+        fn validate(&self, args: &Vec<CliArg>) -> Result {
             if !args.iter().any(|arg| arg.kind() == &ArgKind::Source) {
-                return Err(Box::new(StringError::new("Missing --src argument")));
+                return Err(Box::new(Error::new("Missing --src argument")));
             }
 
             if !args.iter().any(|arg| arg.kind() == &ArgKind::OutDir) {
-                return Err(Box::new(StringError::new("Missing --out-dir argument")));
+                return Err(Box::new(Error::new("Missing --out-dir argument")));
             }
 
             Ok(())
@@ -68,7 +68,7 @@ pub mod cli_builder {
 
     use crate::{
         cli::{Cli, CliBuilder, CliBuilderStrategy},
-        GenericResult,
+        Result,
     };
 
     use super::{extractor::BasicExtractorStrategy, validator::BasicValidatorStrategy};
@@ -76,7 +76,7 @@ pub mod cli_builder {
     pub struct BasicCliBuilderStrategy;
 
     impl CliBuilderStrategy for BasicCliBuilderStrategy {
-        fn build(&self, builder: CliBuilder) -> GenericResult<Cli> {
+        fn build(&self, builder: CliBuilder) -> Result<Cli> {
             let args = match builder.args {
                 Some(val) => val,
                 None => env::args(),

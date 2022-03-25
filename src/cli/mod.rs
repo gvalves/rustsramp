@@ -1,6 +1,7 @@
-use std::{collections::HashMap, env};
+use std::collections::HashMap;
+use std::env;
 
-use crate::GenericResult;
+use crate::Result;
 
 pub mod strategies;
 
@@ -19,11 +20,11 @@ pub trait ExtractorStrategy {
 }
 
 pub trait ValidatorStrategy {
-    fn validate(&self, args: &Vec<CliArg>) -> GenericResult;
+    fn validate(&self, args: &Vec<CliArg>) -> Result;
 }
 
 pub trait CliBuilderStrategy {
-    fn build(&self, builder: CliBuilder) -> GenericResult<Cli>;
+    fn build(&self, builder: CliBuilder) -> Result<Cli>;
 }
 
 #[derive(Copy, Clone, PartialEq, PartialOrd)]
@@ -65,7 +66,7 @@ impl Cli {
         args: env::Args,
         extractor: Box<dyn ExtractorStrategy>,
         validator: Box<dyn ValidatorStrategy>,
-    ) -> GenericResult<Self> {
+    ) -> Result<Self> {
         let mut args = args;
         args.next();
 
@@ -100,7 +101,7 @@ impl CliBuilder {
         }
     }
 
-    pub fn build(self, strategy: Box<dyn CliBuilderStrategy>) -> GenericResult<Cli> {
+    pub fn build(self, strategy: Box<dyn CliBuilderStrategy>) -> Result<Cli> {
         strategy.build(self)
     }
 

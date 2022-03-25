@@ -1,14 +1,13 @@
-use std::{
-    fs::{self},
-    io::{self, Write},
-};
+use std::fs::{self};
+use std::io::{self, Write};
 
-use crate::{ends_with_any, GenericResult};
+use crate::utils::ends_with_any;
+use crate::Result;
 
 pub mod strategies;
 
 pub trait LoadStrategy {
-    fn load(&self, path: &str) -> GenericResult<Vec<Sequence>>;
+    fn load(&self, path: &str) -> Result<Vec<Sequence>>;
 }
 
 pub struct Sequence {
@@ -59,7 +58,7 @@ impl Sequence {
 }
 
 impl Sequence {
-    pub fn load(path: &str, strategy: Box<dyn LoadStrategy>) -> GenericResult<Vec<Sequence>> {
+    pub fn load(path: &str, strategy: Box<dyn LoadStrategy>) -> Result<Vec<Sequence>> {
         strategy.load(path)
     }
 
@@ -128,7 +127,7 @@ mod tests {
 
         use rand::Rng;
 
-        use crate::{sequence::Sequence, GenericResult};
+        use crate::{sequence::Sequence, Result};
 
         #[test]
         fn should_only_save_fasta() {
@@ -141,7 +140,7 @@ mod tests {
         }
 
         #[test]
-        fn should_create_file_if_not_exists() -> GenericResult {
+        fn should_create_file_if_not_exists() -> Result {
             fs::create_dir_all("./tmp")?;
 
             let mut path;
@@ -165,7 +164,7 @@ mod tests {
         }
 
         #[test]
-        fn should_append_if_append_is_true() -> GenericResult {
+        fn should_append_if_append_is_true() -> Result {
             fs::create_dir_all("./tmp")?;
 
             let mut path;

@@ -1,6 +1,7 @@
 use std::process;
 
-use rustsramp::cli::{strategies::cli_builder::BasicCliBuilderStrategy, CliBuilder};
+use rustsramp::cli::strategies::cli_builder::BasicCliBuilderStrategy;
+use rustsramp::cli::CliBuilder;
 
 fn main() {
     let cli = match CliBuilder::new().build(Box::new(BasicCliBuilderStrategy)) {
