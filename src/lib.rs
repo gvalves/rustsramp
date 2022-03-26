@@ -9,6 +9,7 @@ pub mod sequence;
 pub mod utils;
 
 pub use app::run;
+pub use cli::Cli;
 
 pub type Result<T = (), E = Box<dyn std::error::Error>> = core::result::Result<T, E>;
 

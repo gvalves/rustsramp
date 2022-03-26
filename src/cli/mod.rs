@@ -3,6 +3,10 @@ use std::env;
 
 use crate::Result;
 
+use self::strategies::cli_builder::BasicCliBuilderStrategy;
+use self::strategies::extractor::BasicExtractorStrategy;
+use self::strategies::validator::BasicValidatorStrategy;
+
 pub mod strategies;
 
 lazy_static! {
@@ -24,7 +28,7 @@ pub trait ValidatorStrategy {
 }
 
 pub trait CliBuilderStrategy {
-    fn build(&self, builder: CliBuilder) -> Result<Cli>;
+    fn build(&self, dependencies: CliDependencies) -> Result<Cli>;
 }
 
 #[derive(Copy, Clone, PartialEq, PartialOrd)]
@@ -62,7 +66,7 @@ pub struct Cli {
 }
 
 impl Cli {
-    pub fn new(
+    fn new(
         args: env::Args,
         extractor: Box<dyn ExtractorStrategy>,
         validator: Box<dyn ValidatorStrategy>,
@@ -76,6 +80,10 @@ impl Cli {
         Ok(Self { args })
     }
 
+    pub fn builder() -> CliBuilder {
+        CliBuilder::default()
+    }
+
     pub fn has_arg(&self, kind: ArgKind) -> bool {
         self.args.iter().any(|arg| arg.kind() == &kind)
     }
@@ -87,51 +95,45 @@ impl Cli {
 }
 
 pub struct CliBuilder {
-    args: Option<env::Args>,
-    extractor: Option<Box<dyn ExtractorStrategy>>,
-    validator: Option<Box<dyn ValidatorStrategy>>,
+    build_strategy: Box<dyn CliBuilderStrategy>,
+    dependencies: CliDependencies,
 }
 
 impl CliBuilder {
-    pub fn new() -> Self {
+    pub fn build(self) -> Result<Cli> {
+        self.build_strategy.build(self.dependencies)
+    }
+
+    pub fn set_extractor(&mut self, extractor: Box<dyn ExtractorStrategy>) {
+        self.dependencies.extractor = extractor;
+    }
+
+    pub fn set_validator(&mut self, validator: Box<dyn ValidatorStrategy>) {
+        self.dependencies.validator = validator;
+    }
+}
+
+impl Default for CliBuilder {
+    fn default() -> Self {
         Self {
-            args: None,
-            extractor: None,
-            validator: None,
+            build_strategy: Box::new(BasicCliBuilderStrategy),
+            dependencies: CliDependencies::default(),
         }
     }
+}
 
-    pub fn build(self, strategy: Box<dyn CliBuilderStrategy>) -> Result<Cli> {
-        strategy.build(self)
-    }
+pub struct CliDependencies {
+    pub args: env::Args,
+    pub extractor: Box<dyn ExtractorStrategy>,
+    pub validator: Box<dyn ValidatorStrategy>,
+}
 
-    /// Get a reference to the cli builder's args.
-    pub fn args(&self) -> Option<&env::Args> {
-        self.args.as_ref()
-    }
-
-    /// Set the cli builder's args.
-    pub fn set_args(&mut self, args: Option<env::Args>) {
-        self.args = args;
-    }
-
-    /// Get a reference to the cli builder's extractor.
-    pub fn extractor(&self) -> Option<&Box<dyn ExtractorStrategy>> {
-        self.extractor.as_ref()
-    }
-
-    /// Set the cli builder's extractor.
-    pub fn set_extractor(&mut self, extractor: Option<Box<dyn ExtractorStrategy>>) {
-        self.extractor = extractor;
-    }
-
-    /// Get a reference to the cli builder's validator.
-    pub fn validator(&self) -> Option<&Box<dyn ValidatorStrategy>> {
-        self.validator.as_ref()
-    }
-
-    /// Set the cli builder's validator.
-    pub fn set_validator(&mut self, validator: Option<Box<dyn ValidatorStrategy>>) {
-        self.validator = validator;
+impl Default for CliDependencies {
+    fn default() -> Self {
+        Self {
+            args: env::args(),
+            extractor: Box::new(BasicExtractorStrategy),
+            validator: Box::new(BasicValidatorStrategy),
+        }
     }
 }

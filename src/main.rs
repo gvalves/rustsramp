@@ -1,10 +1,9 @@
 use std::process;
 
-use rustsramp::cli::strategies::cli_builder::BasicCliBuilderStrategy;
-use rustsramp::cli::CliBuilder;
+use rustsramp::Cli;
 
 fn main() {
-    let cli = match CliBuilder::new().build(Box::new(BasicCliBuilderStrategy)) {
+    let cli = match Cli::builder().build() {
         Ok(val) => val,
         Err(err) => {
             eprintln!("Cli error: {}", err);

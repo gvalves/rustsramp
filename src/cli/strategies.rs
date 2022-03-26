@@ -64,33 +64,20 @@ pub mod validator {
 }
 
 pub mod cli_builder {
-    use std::env;
-
     use crate::{
-        cli::{Cli, CliBuilder, CliBuilderStrategy},
+        cli::{Cli, CliBuilderStrategy, CliDependencies},
         Result,
     };
-
-    use super::{extractor::BasicExtractorStrategy, validator::BasicValidatorStrategy};
 
     pub struct BasicCliBuilderStrategy;
 
     impl CliBuilderStrategy for BasicCliBuilderStrategy {
-        fn build(&self, builder: CliBuilder) -> Result<Cli> {
-            let args = match builder.args {
-                Some(val) => val,
-                None => env::args(),
-            };
-
-            let extractor = match builder.extractor {
-                Some(val) => val,
-                None => Box::new(BasicExtractorStrategy),
-            };
-
-            let validator = match builder.validator {
-                Some(val) => val,
-                None => Box::new(BasicValidatorStrategy),
-            };
+        fn build(&self, dependencies: CliDependencies) -> Result<Cli> {
+            let CliDependencies {
+                args,
+                extractor,
+                validator,
+            } = dependencies;
 
             Cli::new(args, extractor, validator)
         }
