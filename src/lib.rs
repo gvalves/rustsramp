@@ -2,7 +2,7 @@ use std::{fmt::Display, ops::Deref};
 
 pub mod app;
 pub mod cli;
-pub mod sequence;
+pub mod domain;
 pub mod utils;
 
 pub use app::run;

@@ -100,7 +100,7 @@ impl Sequence {
 #[cfg(test)]
 mod tests {
     mod to_fasta {
-        use crate::sequence::Sequence;
+        use crate::domain::entities::Sequence;
 
         #[test]
         fn should_match_format() {
@@ -120,14 +120,13 @@ mod tests {
     }
 
     mod save {
-        use std::{
-            fs::{self, File},
-            path::Path,
-        };
+        use std::fs::{self, File};
+        use std::path::Path;
 
         use rand::Rng;
 
-        use crate::{sequence::Sequence, Result};
+        use crate::domain::entities::Sequence;
+        use crate::Result;
 
         #[test]
         fn should_only_save_fasta() {

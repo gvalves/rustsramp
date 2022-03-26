@@ -4,7 +4,8 @@ use std::io::Write;
 use regex::Regex;
 
 use crate::cli::{ArgKind, Cli};
-use crate::sequence::{strategies::BasicLoadStrategy, Sequence};
+use crate::domain::entities::sequence::strategies::BasicLoadStrategy;
+use crate::domain::entities::Sequence;
 use crate::Result;
 
 pub fn run(cli: Cli) -> Result {
