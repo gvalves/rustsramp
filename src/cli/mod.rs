@@ -5,9 +5,7 @@ use once_cell::sync::OnceCell;
 
 use crate::Result;
 
-use self::strategies::cli_builder::BasicCliBuilderStrategy;
-use self::strategies::extractor::BasicExtractorStrategy;
-use self::strategies::validator::BasicValidatorStrategy;
+use self::strategies::{BasicCliBuilderStrategy, BasicExtractorStrategy, BasicValidatorStrategy};
 
 pub mod strategies;
 
