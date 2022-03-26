@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::env;
 
+use once_cell::sync::OnceCell;
+
 use crate::Result;
 
 use self::strategies::cli_builder::BasicCliBuilderStrategy;
@@ -9,14 +11,16 @@ use self::strategies::validator::BasicValidatorStrategy;
 
 pub mod strategies;
 
-lazy_static! {
-    static ref ARGS_MAP: HashMap<&'static str, ArgKind> = {
+static OPTIONS_MAP: OnceCell<HashMap<&'static str, ArgKind>> = OnceCell::new();
+
+fn get_options_map() -> &'static HashMap<&'static str, ArgKind> {
+    OPTIONS_MAP.get_or_init(|| {
         let mut m = HashMap::new();
         m.insert("--src", ArgKind::Source);
         m.insert("--out-dir", ArgKind::OutDir);
         m.insert("--verbose", ArgKind::Verbose);
         m
-    };
+    })
 }
 
 pub trait ExtractorStrategy {
