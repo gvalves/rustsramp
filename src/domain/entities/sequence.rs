@@ -6,6 +6,8 @@ use crate::Result;
 
 pub mod strategies;
 
+const ACCEPTED_FASTA_EXT: [&'static str; 2] = [".fasta", ".fas"];
+
 pub trait LoadStrategy {
     fn load(&self, path: &str) -> Result<Vec<Sequence>>;
 }
@@ -63,10 +65,10 @@ impl Sequence {
     }
 
     pub fn save(&self, path: &str, append: bool) -> io::Result<()> {
-        if !ends_with_any(path, vec![".fasta", ".fas"]) {
+        if !ends_with_any(path, ACCEPTED_FASTA_EXT.to_vec()) {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
-                "Filename must be fasta format".to_owned(),
+                format!("Filename must ends with {:?}", ACCEPTED_FASTA_EXT),
             ));
         }
 
@@ -125,6 +127,7 @@ mod tests {
 
         use rand::Rng;
 
+        use crate::domain::entities::sequence::ACCEPTED_FASTA_EXT;
         use crate::domain::entities::Sequence;
         use crate::Result;
 
@@ -134,7 +137,10 @@ mod tests {
             let res = seq.save("mock.notfasta", false);
 
             if let Err(err) = res {
-                assert_eq!(err.to_string(), "Filename must be fasta format");
+                assert_eq!(
+                    err.to_string(),
+                    format!("Filename must ends with {:?}", ACCEPTED_FASTA_EXT)
+                );
             }
         }
 
