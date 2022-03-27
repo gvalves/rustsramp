@@ -1,16 +1,12 @@
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 
-use regex::Regex;
-
 use crate::cli::{ArgKind, Cli};
-use crate::domain::entities::sequence::strategies::BasicLoadStrategy;
-use crate::domain::entities::Sequence;
+use crate::domain::entities::drach::{DrachContext, DrachNeighbor, DrachNeighborPosition};
+use crate::domain::entities::{Drach, Sequence};
 use crate::Result;
 
 pub fn run(cli: Cli) -> Result {
-    let re = Regex::new(r"([AGU][AG]AC[ACU])")?;
-
     let src_path = cli
         .args()
         .iter()
@@ -18,7 +14,7 @@ pub fn run(cli: Cli) -> Result {
         .unwrap()
         .value();
 
-    let seqs = Sequence::load(src_path, Box::new(BasicLoadStrategy))?;
+    let seqs = Sequence::load(src_path)?;
 
     let out_dir_path = cli
         .args()
@@ -40,33 +36,44 @@ pub fn run(cli: Cli) -> Result {
             .append(true)
             .open(out_path)?;
 
-        let payload = seq.payload();
-        let mut payload_gap = payload.clone().to_owned();
+        let drachs = Drach::from_sequence(&seq);
 
-        for m in re.find_iter(payload) {
-            payload_gap.replace_range(m.range(), &"-".repeat(m.range().count()));
-        }
+        for (drach_idx, drach) in drachs.iter().enumerate() {
+            let context = DrachContext::new(&seq, &drachs);
 
-        for (i, m) in re.find_iter(payload).enumerate() {
-            let start = m.start();
-            let end = m.end();
+            let mut builder = DrachNeighbor::builder();
+            let l_neighbor = builder
+                .set_drach(drach)
+                .set_context(context.clone())
+                .set_position(DrachNeighborPosition::Left)
+                .set_length(15)
+                .build()
+                .unwrap();
+
+            let mut builder = DrachNeighbor::builder();
+            let r_neighbor = builder
+                .set_drach(drach)
+                .set_context(context)
+                .set_position(DrachNeighborPosition::Right)
+                .set_length(15)
+                .build()
+                .unwrap();
 
             let mut lines = vec![];
 
             if is_verbose {
-                lines.push(format!("{}\n", m.as_str()));
-                lines.push(format!("{} em {}-{}\n", i + 1, start + 1, end));
+                lines.push(format!("{}\n", drach.payload()));
                 lines.push(format!(
-                    "Anterior: {}\n",
-                    &payload_gap[(start - 15).clamp(0, start)..start]
+                    "{} em {}-{}\n",
+                    drach_idx + 1,
+                    drach.start() + 1,
+                    drach.end()
                 ));
-                lines.push(format!(
-                    "Posterior: {}\n\n",
-                    &payload_gap[end..(end + 15).clamp(end, payload_gap.len())]
-                ));
+                lines.push(format!("Anterior: {}\n", l_neighbor));
+                lines.push(format!("Posterior: {}\n\n", r_neighbor));
             } else {
-                lines.push(payload_gap[(start - 15).clamp(0, start)..start].to_owned());
-                lines.push(payload_gap[end..(end + 15).clamp(end, payload_gap.len())].to_owned());
+                lines.push(l_neighbor.to_string());
+                lines.push(r_neighbor.to_string());
             }
 
             for line in lines {
