@@ -32,7 +32,7 @@ pub fn run(cli: Cli) -> Result {
         fs::remove_file(&out_path)?;
 
         let mut file = OpenOptions::new()
-            .create(true)
+            .create_new(true)
             .append(true)
             .open(out_path)?;
 

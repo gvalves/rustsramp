@@ -1,14 +1,12 @@
 use std::fmt::Display;
 
-use rand::Rng;
 use regex::Regex;
 
 use crate::{Error, Result};
 
 use super::Sequence;
 
-const DRACH_RE: &'static str = r"([AGU][AG]AC[ACU])";
-const BASES: [char; 4] = ['A', 'U', 'G', 'C'];
+pub const DRACH_RE: &'static str = r"([AGU][AG]AC[ACU])";
 
 pub struct Drach {
     payload: String,
@@ -154,47 +152,30 @@ impl Display for DrachNeighbor<'_> {
         };
 
         let overlaping_drachs: Vec<&Drach> = match position {
-            DrachNeighborPosition::Left => {
-                context.drachs.iter().filter(|d| d.end() > start).collect()
-            }
-            DrachNeighborPosition::Right => {
-                context.drachs.iter().filter(|d| d.start() < end).collect()
-            }
+            DrachNeighborPosition::Left => context
+                .drachs
+                .iter()
+                .filter(|d| d.end() > start && d.end() < drach.start())
+                .collect(),
+            DrachNeighborPosition::Right => context
+                .drachs
+                .iter()
+                .filter(|d| d.start() < end && d.start() > drach.end())
+                .collect(),
         };
 
-        let payload = context.sequence.payload();
-        let mut payload = String::from(payload);
+        let mut sequence = context.sequence.clone();
 
         for drach in overlaping_drachs {
             let range = drach.start() - 5..drach.end() + 5;
-            let replace_with = &replace_drach(&payload[range.clone()]);
-            payload.replace_range(range, replace_with);
+            sequence.remove_drachs_from_range_mut(range);
         }
 
-        let res = &payload[start..end];
-
-        write!(f, "{}", res)
-    }
-}
-
-fn replace_drach(sequence: &str) -> String {
-    let re = Regex::new(DRACH_RE).unwrap();
-    let mut sequence: Vec<char> = sequence.chars().map(|c| c).collect();
-
-    loop {
-        for i in 0..5 {
-            let base = rand::thread_rng().gen_range(0..=3);
-            sequence[i + 5] = BASES[base];
-        }
-
-        let bytes: Vec<u8> = sequence.iter().map(|c| *c as u8).collect();
-        let new_sequence = String::from_utf8(bytes).unwrap();
-
-        if !re.is_match(&new_sequence) {
-            break new_sequence;
-        }
-
-        sequence = new_sequence.chars().map(|c| c).collect();
+        write!(
+            f,
+            "{}",
+            &sequence.payload()[sequence.clamp_range(start..end)]
+        )
     }
 }
 
@@ -293,5 +274,60 @@ impl<'a> DrachContext<'a> {
     #[must_use]
     pub fn drachs(&self) -> &[Drach] {
         self.drachs
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    mod drach {
+        mod from_sequence {
+            use crate::domain::entities::{Drach, Sequence};
+
+            #[test]
+            fn returns_empty_vector_if_sequence_doesnt_contains_a_drach() {
+                let id = "id";
+                let header = "header";
+                let payload = &"A".repeat(10);
+
+                let seq = Sequence::new(id, header, payload, None);
+                let drachs = Drach::from_sequence(&seq);
+
+                assert!(drachs.is_empty());
+            }
+
+            #[test]
+            fn returns_expected_numbers_of_drachs() {
+                let id = "id";
+                let header = "header";
+                let payload = "AUUAAAGGUUUAUACCUUCCCAGGUAACAAACCAACCAACUUUCGAUCUCUUGUAGAUCUGUUCUCUAAACGAACUUUAAAAUCUGUGUGGCUGUCACUCGGCUGCAUGCUUAGUGCACUCACGCAGUAUAAUUAAUAACUAAUUACUGUCGUUGACAGGACACGAGUAACUCGUCUAUCUUCUGCAGGCUGCUUACGGUUUCGUCCGUGUUGCAG";
+
+                let seq = Sequence::new(id, header, payload, None);
+                let drachs = Drach::from_sequence(&seq);
+
+                assert_eq!(drachs.len(), 6);
+
+                let payload = "UUUUGUAUUUCCCUUAAAUUCCAUAAUCAAGACUAUUCAACCAAGGGUUGAAAAGAAAAAGCUUGAUGGCUUUAUGGGUAGAAUUCGAUCUGUCUAUCCAGUUGCGUCACCAAAUGAAUGCAACCAAAUGUGCCUUUCAACUCUCAUGAAGUGUGAUCAUUGUGGUGAAACUUCAUGGCAGACGGGCGAUUUUGUUAAAGCCACUUGCGAAUUUUG";
+
+                let seq = Sequence::new(id, header, payload, None);
+                let drachs = Drach::from_sequence(&seq);
+
+                assert_eq!(drachs.len(), 2);
+            }
+
+            #[test]
+            fn drachs_positions_should_be_correct() {
+                let id = "id";
+                let header = "header";
+                let payload = "UUUUGUAUUUCCCUUAAAUUCCAUAAUCAAGACUAUUCAACCAAGGGUUGAAAAGAAAAAGCUUGAUGGCUUUAUGGGUAGAAUUCGAUCUGUCUAUCCAGUUGCGUCACCAAAUGAAUGCAACCAAAUGUGCCUUUCAACUCUCAUGAAGUGUGAUCAUUGUGGUGAAACUUCAUGGCAGACGGGCGAUUUUGUUAAAGCCACUUGCGAAUUUUG";
+
+                let seq = Sequence::new(id, header, payload, None);
+                let drachs = Drach::from_sequence(&seq);
+
+                assert_eq!(drachs[0].start(), 29);
+                assert_eq!(drachs[0].end(), 34);
+                assert_eq!(drachs[1].start(), 167);
+                assert_eq!(drachs[1].end(), 172);
+            }
+        }
     }
 }

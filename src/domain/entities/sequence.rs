@@ -1,11 +1,19 @@
 use std::fs::{self};
 use std::io::{self, Write};
+use std::ops::Range;
+
+use rand::Rng;
+use regex::Regex;
 
 use crate::utils::ends_with_any;
 use crate::Result;
 
-const ACCEPTED_FASTA_EXT: [&'static str; 2] = [".fasta", ".fas"];
+use super::drach::DRACH_RE;
 
+pub const ACCEPTED_FASTA_EXT: [&'static str; 2] = [".fasta", ".fas"];
+pub const BASES: [char; 4] = ['A', 'U', 'G', 'C'];
+
+#[derive(Clone)]
 pub struct Sequence {
     id: String,
     header: String,
@@ -76,7 +84,7 @@ impl Sequence {
             }
 
             if let Some(ref mut seq) = curr_seq {
-                seq.payload_mut().push_str(line);
+                seq.payload_mut().push_str(line.trim());
             }
         }
 
@@ -119,6 +127,42 @@ impl Sequence {
         }
 
         fasta
+    }
+}
+
+impl Sequence {
+    pub fn clamp_range(&self, range: Range<usize>) -> Range<usize> {
+        let start = range.start.clamp(0, self.payload.len());
+        let end = range.end.clamp(0, self.payload.len());
+        start..end
+    }
+
+    pub fn remove_drachs_from_range(&self, range: Range<usize>) -> String {
+        let re = Regex::new(DRACH_RE).unwrap();
+        let range = self.clamp_range(range);
+        let mut seq_slice: Vec<char> = self.payload[range].chars().map(|c| c).collect();
+
+        loop {
+            for i in 0..5 {
+                let base = rand::thread_rng().gen_range(0..=3);
+                seq_slice[i + 5] = BASES[base];
+            }
+
+            let bytes: Vec<u8> = seq_slice.iter().map(|c| *c as u8).collect();
+            let new_seq_slice = String::from_utf8(bytes).unwrap();
+
+            if !re.is_match(&new_seq_slice[4..9]) {
+                break new_seq_slice;
+            }
+
+            seq_slice = new_seq_slice.chars().map(|c| c).collect();
+        }
+    }
+
+    pub fn remove_drachs_from_range_mut(&mut self, range: Range<usize>) {
+        let range = self.clamp_range(range);
+        let seq_slice = self.remove_drachs_from_range(range.clone());
+        self.payload.replace_range(range, &seq_slice);
     }
 }
 
