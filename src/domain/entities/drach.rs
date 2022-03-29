@@ -24,13 +24,17 @@ impl Drach {
         let text = sequence.payload();
         let mut drachs = vec![];
 
-        for a_match in re.find_iter(text) {
+        for (index, a_match) in re.find_iter(text).enumerate() {
             let payload = String::from(&text[a_match.range()]);
-            let position = DrachPosition::new(a_match.start(), a_match.end());
+            let position = DrachPosition::new(index, a_match.start(), a_match.end());
             drachs.push(Drach::new(payload, position));
         }
 
         drachs
+    }
+
+    pub fn index(&self) -> usize {
+        self.position.index()
     }
 
     pub fn start(&self) -> usize {
@@ -49,16 +53,23 @@ impl Drach {
 }
 
 pub struct DrachPosition {
+    index: usize,
     start: usize,
     end: usize,
 }
 
 impl DrachPosition {
     #[must_use]
-    pub fn new(start: usize, end: usize) -> Self {
+    pub fn new(index: usize, start: usize, end: usize) -> Self {
         let start = start.clamp(0, end);
         let end = end.clamp(start, end);
-        Self { start, end }
+        Self { index, start, end }
+    }
+
+    /// Get the drach position's index.
+    #[must_use]
+    pub fn index(&self) -> usize {
+        self.index
     }
 
     /// Get the drach position's start.
@@ -80,6 +91,7 @@ pub enum DrachNeighborPosition {
     Right,
 }
 
+#[derive(Clone)]
 pub struct DrachNeighbor<'a> {
     drach: &'a Drach,
     context: DrachContext<'a>,
@@ -179,6 +191,7 @@ impl Display for DrachNeighbor<'_> {
     }
 }
 
+#[derive(Clone)]
 pub struct DrachNeighborBuilder<'a> {
     drach: Option<&'a Drach>,
     context: Option<DrachContext<'a>>,

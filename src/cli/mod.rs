@@ -90,6 +90,14 @@ impl Cli {
         self.args.iter().any(|arg| arg.kind() == &kind)
     }
 
+    pub fn arg(&self, kind: ArgKind) -> &str {
+        self.args
+            .iter()
+            .find(|arg| arg.kind() == &kind)
+            .unwrap()
+            .value()
+    }
+
     /// Get a reference to the cli's args.
     pub fn args(&self) -> &[CliArg] {
         self.args.as_ref()
