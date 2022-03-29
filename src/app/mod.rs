@@ -1,4 +1,4 @@
-use std::fs::{self, OpenOptions};
+use std::fs::{self, File, OpenOptions};
 
 use crate::cli::{ArgKind, Cli};
 use crate::domain::entities::{
@@ -11,34 +11,19 @@ use crate::domain::usecases::write_drach_neighbor::{
 use crate::Result;
 
 pub fn run(cli: Cli) -> Result {
-    let src_path = cli.arg(ArgKind::Source);
-    let out_dir_path = cli.arg(ArgKind::OutDir);
     let is_verbose = cli.has_arg(ArgKind::Verbose);
+    let seqs = load_seqs(&cli)?;
 
-    let seqs = Sequence::load(src_path)?;
-
-    fs::create_dir_all(out_dir_path)?;
+    prepare_outdir(&cli)?;
 
     for seq in seqs {
-        let out_path = format!("{}/{}.fasta", out_dir_path, seq.id());
-        fs::remove_file(&out_path)?;
-
-        let file = OpenOptions::new()
-            .create_new(true)
-            .append(true)
-            .open(out_path)?;
-
         let drachs = Drach::from_sequence(&seq);
+        let ctx = DrachContext::new(&seq, &drachs);
 
-        let write_strategy: Box<dyn WriteStrategy> = if let true = is_verbose {
-            Box::new(VerboseWriteStrategy)
-        } else {
-            Box::new(BasicWriteStrategy)
-        };
+        let file = create_fasta_file(&cli, seq.id())?;
+        let write_strategy = get_write_strategy(is_verbose);
 
         let mut write_drach_neighbor = WriteDrachNeighbor::new(&file, write_strategy);
-
-        let ctx = DrachContext::new(&seq, &drachs);
 
         for drach in drachs.iter() {
             write_drach_neighbor.write(drach, &ctx, DrachNeighborPosition::Left, 15)?;
@@ -47,4 +32,35 @@ pub fn run(cli: Cli) -> Result {
     }
 
     Ok(())
+}
+
+fn load_seqs(cli: &Cli) -> Result<Vec<Sequence>> {
+    let path = cli.arg(ArgKind::Source);
+    Sequence::load(path)
+}
+
+fn prepare_outdir(cli: &Cli) -> Result {
+    let path = cli.arg(ArgKind::OutDir);
+    fs::create_dir_all(path)?;
+    Ok(())
+}
+
+fn create_fasta_file(cli: &Cli, filename: &str) -> Result<File> {
+    let path = format!("{}/{}.fasta", cli.arg(ArgKind::OutDir), filename);
+    fs::remove_file(&path)?;
+
+    let file = OpenOptions::new()
+        .create_new(true)
+        .append(true)
+        .open(path)?;
+
+    Ok(file)
+}
+
+fn get_write_strategy(is_verbose: bool) -> Box<dyn WriteStrategy> {
+    if let true = is_verbose {
+        Box::new(VerboseWriteStrategy)
+    } else {
+        Box::new(BasicWriteStrategy)
+    }
 }
